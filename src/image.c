@@ -12,6 +12,8 @@
 
 int windows = 0;
 
+int frameNumber = 0;
+
 float colors[6][3] = { {1,0,1}, {0,0,1},{0,1,1},{0,1,0},{1,1,0},{1,0,0} };
 
 float get_color(int c, int x, int max)
@@ -569,6 +571,12 @@ void show_image_cv(image p, const char *name, IplImage *disp)
         cvReleaseImage(&buffer);
     }
     cvShowImage(buff, disp);
+
+    //save image
+    char picName[20]="";
+    sprintf(picName, "./picture/%d.jpg", frameNumber);
+    frameNumber++;
+    cvSaveImage(picName, disp,0);
 }
 #endif
 
@@ -691,6 +699,29 @@ void save_image_jpg(image p, const char *name)
     cvReleaseImage(&disp);
     free_image(copy);
 }
+
+//add 2018/5/3
+void save_video(image p, CvVideoWriter *mVideoWriter)
+{
+    image copy = copy_image(p);
+    if(p.c == 3) rgbgr_image(copy);
+    int x,y,k;
+
+    IplImage *disp = cvCreateImage(cvSize(p.w,p.h), IPL_DEPTH_8U, p.c);
+    int step = disp->widthStep;
+    for(y = 0; y < p.h; ++y){
+        for(x = 0; x < p.w; ++x){
+            for(k= 0; k < p.c; ++k){
+                disp->imageData[y*step + x*p.c + k] = (unsigned char)(get_pixel(copy,x,y,k)*255);
+            }
+        }
+    }
+    cvWriteFrame(mVideoWriter,disp);
+    cvReleaseImage(&disp);
+    free_image(copy);
+}
+//add 2018/5/3
+
 #endif
 
 void save_image_png(image im, const char *name)
@@ -780,8 +811,8 @@ void place_image(image im, int w, int h, int dx, int dy, image canvas)
     for(c = 0; c < im.c; ++c){
         for(y = 0; y < h; ++y){
             for(x = 0; x < w; ++x){
-                float rx = ((float)x / w) * im.w;
-                float ry = ((float)y / h) * im.h;
+                int rx = ((float)x / w) * im.w;
+                int ry = ((float)y / h) * im.h;
                 float val = bilinear_interpolate(im, rx, ry, c);
                 set_pixel(canvas, x + dx, y + dy, c, val);
             }
