@@ -11,12 +11,21 @@
 
 #define DEMO 1
 
+//add 2018\5\3
+#define SAVEVIDEO
+//add 2018\5\3
+
 #ifdef OPENCV
+
+//add 2018\5\3
+#ifdef SAVEVIDEO
+   static CvVideoWriter *mVideoWriter;
+#endif
+//add 2018\5\3
 
 static char **demo_names;
 static image **demo_alphabet;
 static int demo_classes;
-
 static network *net;
 static image buff [3];
 static image buff_letter[3];
@@ -123,7 +132,8 @@ void *detect_in_thread(void *ptr)
     }
      */
 
-    if (nms > 0) do_nms_obj(dets, nboxes, l.classes, nms);
+
+ if (nms > 0) do_nms_obj(dets, nboxes, l.classes, nms);
 
     printf("\033[2J");
     printf("\033[1;1H");
@@ -210,9 +220,25 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
     if(filename){
         printf("video file: %s\n", filename);
         cap = cvCaptureFromFile(filename);
+//add 2018\5\3
+    #ifdef SAVEVIDEO
+        if(cap){
+            int mfps = cvGetCaptureProperty(cap,CV_CAP_PROP_FPS);   //local video file，needn't change
+            mVideoWriter=cvCreateVideoWriter("Output.avi",CV_FOURCC('M','J','P','G'),mfps,cvSize(cvGetCaptureProperty(cap,CV_CAP_PROP_FRAME_WIDTH),cvGetCaptureProperty(cap,CV_CAP_PROP_FRAME_HEIGHT)),1);
+        }
+    #endif
+//add 2018\5\3
     }else{
         cap = cvCaptureFromCAM(cam_index);
-
+//add 2018\5\3
+    #ifdef SAVEVIDEO
+        if(cap){
+            //int mfps = cvGetCaptureProperty(cap,CV_CAP_PROP_FPS);  //webcam video file，need change.
+            int mfps = 25;     //the output video FPS，you can set here.
+            mVideoWriter=cvCreateVideoWriter("Output_webcam.avi",CV_FOURCC('M','J','P','G'),mfps,cvSize(cvGetCaptureProperty(cap,CV_CAP_PROP_FRAME_WIDTH),cvGetCaptureProperty(cap,CV_CAP_PROP_FRAME_HEIGHT)),1);
+        }
+    #endif
+//add 2018\5\3
         if(w){
             cvSetCaptureProperty(cap, CV_CAP_PROP_FRAME_WIDTH, w);
         }
@@ -252,13 +278,24 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
         if(pthread_create(&fetch_thread, 0, fetch_in_thread, 0)) error("Thread creation failed");
         if(pthread_create(&detect_thread, 0, detect_in_thread, 0)) error("Thread creation failed");
         if(!prefix){
+//add 2018\5\3
+            #ifdef SAVEVIDEO
+                save_video(buff[0],mVideoWriter);    
+            #endif
+//add 2018\5\3
             fps = 1./(what_time_is_it_now() - demo_time);
             demo_time = what_time_is_it_now();
             display_in_thread(0);
         }else{
             char name[256];
             sprintf(name, "%s_%08d", prefix, count);
+//add 2018\5\3
+            #ifdef SAVEVIDEO
+                  save_video(buff[0],mVideoWriter);
+            #else
             save_image(buff[(buff_index + 1)%3], name);
+            #endif
+//add 2018\5\3
         }
         pthread_join(fetch_thread, 0);
         pthread_join(detect_thread, 0);
